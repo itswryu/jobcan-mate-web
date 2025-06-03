@@ -7,9 +7,9 @@ import { Label } from '@/components/ui/label'
 import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useSession } from 'next-auth/react'
-import { Save, Eye, EyeOff, CheckCircle, AlertCircle, Clock, Calendar, Bell, Settings as SettingsIcon } from 'lucide-react'
+import { Save, Eye, EyeOff, CheckCircle, AlertCircle, Clock, Calendar, Bell, Settings as SettingsIcon, Database, Bug } from 'lucide-react'
 
 interface Settings {
   // Jobcan 계정 정보
@@ -45,6 +45,8 @@ export function SettingsForm() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [debugMode, setDebugMode] = useState(false)
+  const [dbInfo, setDbInfo] = useState<any>(null)
   const [settings, setSettings] = useState<Settings>({
     jobcanEmail: '',
     jobcanPassword: '',
@@ -62,6 +64,43 @@ export function SettingsForm() {
     annualLeaveCalendarUrl: '',
     annualLeaveKeyword: '연차'
   })
+
+  // 설정 불러오기
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const response = await fetch('/api/settings');
+        const data = await response.json();
+        
+        if (data.success && data.data) {
+          setSettings(data.data);
+        }
+      } catch (error) {
+        console.error('설정 불러오기 오류:', error);
+      }
+    };
+    
+    if (session?.user?.id) {
+      fetchSettings();
+    }
+  }, [session]);
+
+  // 데이터베이스 정보 불러오기
+  const fetchDbInfo = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/db-check');
+      const data = await response.json();
+      
+      if (data.success) {
+        setDbInfo(data.data);
+      }
+    } catch (error) {
+      console.error('DB 정보 불러오기 오류:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const handleSave = async () => {
     setIsLoading(true)
@@ -98,6 +137,40 @@ export function SettingsForm() {
     }
   }
 
+  const handleDirectSave = async () => {
+    setIsLoading(true)
+    setSaveStatus('idle')
+    
+    try {
+      // 직접 저장 API 호출
+      const response = await fetch('/api/db-check', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setSaveStatus('success')
+        setDbInfo(data.diagnostic);
+      } else {
+        console.error('직접 저장 실패:', data.message);
+        setSaveStatus('error')
+      }
+      
+      setTimeout(() => setSaveStatus('idle'), 3000)
+    } catch (error) {
+      console.error('직접 저장 오류:', error)
+      setSaveStatus('error')
+      setTimeout(() => setSaveStatus('idle'), 3000)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
   const handleInputChange = (field: keyof Settings, value: any) => {
     setSettings(prev => ({ ...prev, [field]: value }))
   }
@@ -122,6 +195,12 @@ export function SettingsForm() {
             <SettingsIcon className="h-4 w-4" />
             <span>고급 설정</span>
           </TabsTrigger>
+          {debugMode && (
+            <TabsTrigger value="debug" className="flex items-center gap-2 bg-yellow-100 dark:bg-yellow-900 text-yellow-800 dark:text-yellow-200">
+              <Bug className="h-4 w-4" />
+              <span>디버그</span>
+            </TabsTrigger>
+          )}
         </TabsList>
 
         <TabsContent value="account" className="space-y-6 mt-6">
@@ -352,6 +431,15 @@ export function SettingsForm() {
                 <Label htmlFor="test-mode">테스트 모드</Label>
               </div>
 
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="debug-mode"
+                  checked={debugMode}
+                  onCheckedChange={(checked) => setDebugMode(checked)}
+                />
+                <Label htmlFor="debug-mode">디버그 모드</Label>
+              </div>
+
               <div>
                 <Label htmlFor="message-language">메시지 언어</Label>
                 <Select
@@ -371,6 +459,51 @@ export function SettingsForm() {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {debugMode && (
+          <TabsContent value="debug" className="space-y-6 mt-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>데이터베이스 디버깅</CardTitle>
+                <CardDescription>
+                  데이터베이스 상태 확인 및 직접 저장 테스트
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center space-x-2">
+                  <Button 
+                    variant="outline" 
+                    onClick={fetchDbInfo}
+                    disabled={isLoading}
+                    className="flex items-center gap-2"
+                  >
+                    <Database className="h-4 w-4" />
+                    DB 상태 확인
+                  </Button>
+                  
+                  <Button 
+                    variant="destructive" 
+                    onClick={handleDirectSave}
+                    disabled={isLoading}
+                    className="flex items-center gap-2"
+                  >
+                    <Bug className="h-4 w-4" />
+                    직접 저장 테스트
+                  </Button>
+                </div>
+                
+                {dbInfo && (
+                  <div className="mt-4 border rounded p-4 bg-gray-50 dark:bg-gray-900 overflow-auto max-h-96">
+                    <h3 className="text-sm font-semibold mb-2">데이터베이스 정보</h3>
+                    <pre className="text-xs">
+                      {JSON.stringify(dbInfo, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
 
       <div className="flex justify-end items-center gap-4">
