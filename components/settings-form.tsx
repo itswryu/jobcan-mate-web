@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { useState } from 'react'
+import { useSession } from 'next-auth/react'
 import { Save, Eye, EyeOff, CheckCircle, AlertCircle, Clock, Calendar, Bell, Settings as SettingsIcon } from 'lucide-react'
 
 interface Settings {
@@ -40,6 +41,7 @@ interface Settings {
 }
 
 export function SettingsForm() {
+  const { data: session } = useSession()
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle')
@@ -127,30 +129,32 @@ export function SettingsForm() {
             <CardHeader>
               <CardTitle>Jobcan 계정 정보</CardTitle>
               <CardDescription>
-                Jobcan 로그인에 사용할 계정 정보를 입력하세요
+                자동 출퇴근에 사용될 Jobcan 계정 정보를 입력하세요
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="email">이메일</Label>
+                <Label htmlFor="jobcan-email">Jobcan 이메일</Label>
                 <Input
-                  id="email"
+                  id="jobcan-email"
                   type="email"
                   value={settings.jobcanEmail}
                   onChange={(e) => handleInputChange('jobcanEmail', e.target.value)}
-                  placeholder="your_email@example.com"
+                  placeholder="jobcan_email@example.com"
                   className="mt-1"
                 />
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Jobcan에 로그인할 때 사용하는 이메일입니다</p>
               </div>
+              
               <div>
-                <Label htmlFor="password">비밀번호</Label>
+                <Label htmlFor="password">Jobcan 비밀번호</Label>
                 <div className="relative mt-1">
                   <Input
                     id="password"
                     type={showPassword ? 'text' : 'password'}
                     value={settings.jobcanPassword}
                     onChange={(e) => handleInputChange('jobcanPassword', e.target.value)}
-                    placeholder="비밀번호를 입력하세요"
+                    placeholder="Jobcan 비밀번호를 입력하세요"
                   />
                   <Button
                     type="button"
@@ -163,6 +167,7 @@ export function SettingsForm() {
                     <span className="sr-only">{showPassword ? '비밀번호 숨기기' : '비밀번호 보기'}</span>
                   </Button>
                 </div>
+                <p className="text-xs text-zinc-500 dark:text-zinc-400 mt-1">Jobcan에 로그인할 때 사용하는 비밀번호입니다</p>
               </div>
             </CardContent>
           </Card>

@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server'
 import { getAuthSession } from '@/lib/auth'
+import { SettingsService } from '@/services/settings-service'
+import { initializeDatabase } from '@/app/actions'
 
+// 오류 처리를 개선한 API 라우트 핸들러
 export async function GET() {
   try {
     const session = await getAuthSession()
@@ -12,30 +15,32 @@ export async function GET() {
       )
     }
 
-    // 사용자 설정 조회 로직
-    // 데이터베이스에서 사용자별 설정 조회
-    const defaultSettings = {
-      jobcanEmail: '',
-      jobcanPassword: '',
-      weekdaysOnly: true,
-      checkInTime: '09:00',
-      checkOutTime: '18:00',
-      schedulerEnabled: true,
-      checkInDelay: -10,
-      checkOutDelay: 5,
-      timezone: 'Asia/Seoul',
-      testMode: false,
-      messageLanguage: 'ko',
-      telegramBotToken: '',
-      telegramChatId: '',
-      annualLeaveCalendarUrl: '',
-      annualLeaveKeyword: '연차'
+    try {
+      // 설정 서비스를 통해 사용자 설정 조회
+      let userSettings = await SettingsService.getSettingsByUserId(session.user.id)
+      
+      if (!userSettings) {
+        // 사용자 설정이 없으면 기본 설정 생성
+        userSettings = await SettingsService.createDefaultSettings(session.user.id)
+      }
+      
+      return NextResponse.json({
+        success: true,
+        data: userSettings
+      })
+    } catch (dbError) {
+      console.error('데이터베이스 오류:', dbError)
+      
+      // 데이터베이스 오류 발생 시 초기화 시도
+      await initializeDatabase()
+      
+      // 기본 설정 반환
+      return NextResponse.json({
+        success: true,
+        data: SettingsService.getDefaultSettings(),
+        message: '데이터베이스 오류가 발생하여 기본 설정을 반환합니다. 다시 시도해 주세요.'
+      })
     }
-    
-    return NextResponse.json({
-      success: true,
-      data: defaultSettings
-    })
   } catch (error) {
     console.error('Settings fetch error:', error)
     return NextResponse.json(
@@ -66,12 +71,26 @@ export async function POST(request: Request) {
       )
     }
     
-    // 설정 저장 로직
-    // 데이터베이스에 사용자별 설정 저장
-    // const userId = session.user.id
-    // await saveUserSettings(userId, settings)
-    
-    console.log('Settings to save:', { userId: session.user.id, settings })
+    try {
+      // 설정 서비스를 통해 사용자 설정 저장
+      await SettingsService.saveSettings(session.user.id, settings)
+    } catch (dbError) {
+      console.error('데이터베이스 저장 오류:', dbError)
+      
+      // 데이터베이스 오류 발생 시 초기화 시도
+      await initializeDatabase()
+      
+      // 다시 저장 시도
+      try {
+        await SettingsService.saveSettings(session.user.id, settings)
+      } catch (retryError) {
+        console.error('재시도 중 오류:', retryError)
+        return NextResponse.json(
+          { success: false, message: '설정 저장에 실패했습니다. 다시 시도해 주세요.' },
+          { status: 500 }
+        )
+      }
+    }
     
     return NextResponse.json({
       success: true,
