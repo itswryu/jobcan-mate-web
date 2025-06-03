@@ -1,0 +1,55 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id
+  email     String   @unique
+  name      String?
+  image     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  settings  Settings?
+}
+
+model Settings {
+  id                    Int     @id @default(autoincrement())
+  userId                String  @unique
+  user                  User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Jobcan 계정 정보
+  jobcanEmail           String
+  jobcanPassword        String
+  
+  // 근무 시간 설정
+  weekdaysOnly          Boolean @default(true)
+  checkInTime           String  @default("09:00")
+  checkOutTime          String  @default("18:00")
+  
+  // 스케줄러 설정
+  schedulerEnabled      Boolean @default(true)
+  checkInDelay          Int     @default(-10)  // 음수: 일찍, 양수: 늦게
+  checkOutDelay         Int     @default(5)    // 음수: 일찍, 양수: 늦게
+  timezone              String  @default("Asia/Seoul")
+  
+  // 고급 설정
+  testMode              Boolean @default(false)
+  messageLanguage       String  @default("ko")
+  
+  // 알림 설정
+  telegramBotToken      String  @default("")
+  telegramChatId        String  @default("")
+  annualLeaveCalendarUrl String  @default("")
+  annualLeaveKeyword    String  @default("연차")
+  
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+}
