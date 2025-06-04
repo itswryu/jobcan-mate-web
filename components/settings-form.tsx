@@ -89,11 +89,13 @@ export function SettingsForm() {
   const fetchDbInfo = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/db-check');
+      const response = await fetch('/api/db-check?debug=true');
       const data = await response.json();
       
       if (data.success) {
         setDbInfo(data.data);
+      } else {
+        console.error('DB 정보 불러오기 실패:', data.message);
       }
     } catch (error) {
       console.error('DB 정보 불러오기 오류:', error);
@@ -142,8 +144,8 @@ export function SettingsForm() {
     setSaveStatus('idle')
     
     try {
-      // 직접 저장 API 호출
-      const response = await fetch('/api/db-check', {
+      // 직접 저장 API 호출 (디버그 모드)
+      const response = await fetch('/api/db-check?debug=true', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

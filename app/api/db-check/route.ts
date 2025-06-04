@@ -4,7 +4,7 @@ import { diagnosticDb, directSaveSettings } from '@/lib/db-utils';
 import { initializeDatabase } from '@/app/db-actions';
 
 // 데이터베이스 상태 확인 엔드포인트
-export async function GET() {
+export async function GET(request: Request) {
   try {
     const session = await getAuthSession();
     
@@ -15,7 +15,18 @@ export async function GET() {
       );
     }
     
-    // 데이터베이스 진단 실행
+    // 디버그 모드 확인
+    const params = new URL(request.url).searchParams;
+    const isDebug = params.get('debug') === 'true';
+
+    if (!isDebug) {
+      return NextResponse.json({
+        success: false,
+        message: '디버그 모드에서만 사용 가능한 기능입니다.'
+      }, { status: 403 });
+    }
+
+    // 데이터베이스 진단 실행 (디버그 모드일 때만)
     const diagnosticResult = await diagnosticDb();
     
     return NextResponse.json({
@@ -43,6 +54,17 @@ export async function POST(request: Request) {
       );
     }
     
+    // 디버그 모드 확인
+    const params = new URL(request.url).searchParams;
+    const isDebug = params.get('debug') === 'true';
+
+    if (!isDebug) {
+      return NextResponse.json({
+        success: false,
+        message: '디버그 모드에서만 사용 가능한 기능입니다.'
+      }, { status: 403 });
+    }
+
     // 설정 데이터 파싱
     const settings = await request.json();
     console.log('POST /api/db-check: 설정 저장 요청 데이터:', settings);
