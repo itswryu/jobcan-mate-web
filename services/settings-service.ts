@@ -17,6 +17,7 @@ export class SettingsService {
       });
     } catch (error) {
       console.error('설정 조회 중 오류:', error);
+      console.log('로그인 문제가 지속되면 데이터베이스 초기화를 시도해 주세요: npm run force-reset-db');
       throw new Error('설정을 조회하는 중에 오류가 발생했습니다.');
     }
   }
@@ -61,6 +62,7 @@ export class SettingsService {
       return result;
     } catch (error) {
       console.error('설정 저장 중 오류:', error);
+      console.log('로그인 문제가 지속되면 데이터베이스 초기화를 시도해 주세요: npm run force-reset-db');
       throw new Error('설정을 저장하는 중에 오류가 발생했습니다.');
     }
   }
@@ -79,6 +81,7 @@ export class SettingsService {
       return count > 0;
     } catch (error) {
       console.error('설정 확인 중 오류:', error);
+      console.log('로그인 문제가 지속되면 데이터베이스 초기화를 시도해 주세요: npm run force-reset-db');
       return false;
     }
   }
@@ -123,7 +126,6 @@ export class SettingsService {
         return existingSettings;
       }
       
-      // 기본 설정 생성
       return await prisma.settings.create({
         data: {
           userId,
@@ -132,6 +134,7 @@ export class SettingsService {
       });
     } catch (error) {
       console.error('기본 설정 생성 중 오류:', error);
+      console.log('로그인 문제가 지속되면 데이터베이스 초기화를 시도해 주세요: npm run force-reset-db');
       throw new Error('기본 설정을 생성하는 중에 오류가 발생했습니다.');
     }
   }

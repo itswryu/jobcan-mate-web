@@ -6,7 +6,18 @@ import { AlertTriangle } from "lucide-react";
 import Link from "next/link";
 import { useEffect } from "react";
 
-export default function ErrorPage() {
+export default function Error({
+  error,
+  reset,
+}: {
+  error: Error & { digest?: string };
+  reset: () => void;
+}) {
+  useEffect(() => {
+    // 오류 로깅
+    console.error('오류 발생:', error);
+  }, [error]);
+
   return (
     <div className="container flex items-center justify-center min-h-screen py-10">
       <Card className="w-full max-w-md">
@@ -16,7 +27,7 @@ export default function ErrorPage() {
           </div>
           <CardTitle className="text-center text-xl">오류가 발생했습니다</CardTitle>
           <CardDescription className="text-center">
-            알 수 없는 오류가 발생했습니다.
+            {error?.message || '알 수 없는 오류가 발생했습니다.'}
           </CardDescription>
         </CardHeader>
         <CardContent className="text-sm text-gray-500">
@@ -27,9 +38,14 @@ export default function ErrorPage() {
             <li>쿠키와 캐시를 삭제한 후 다시 시도하세요.</li>
             <li>문제가 지속되면 관리자에게 문의하세요.</li>
           </ul>
+          {error?.digest && (
+            <p className="mt-4 text-xs text-gray-400">
+              오류 코드: {error.digest}
+            </p>
+          )}
         </CardContent>
         <CardFooter className="flex justify-center space-x-4">
-          <Button variant="outline" onClick={() => window.location.reload()}>
+          <Button variant="outline" onClick={reset}>
             다시 시도
           </Button>
           <Button asChild>

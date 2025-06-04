@@ -490,6 +490,35 @@ export function SettingsForm() {
                     <Bug className="h-4 w-4" />
                     직접 저장 테스트
                   </Button>
+                  
+                  <Button 
+                    variant="outline" 
+                    onClick={async () => {
+                      setIsLoading(true);
+                      try {
+                        const response = await fetch('/api/db-init', {
+                          method: 'POST'
+                        });
+                        const data = await response.json();
+                        alert(data.message || '데이터베이스 초기화 완료');
+                        // DB 정보 다시 불러오기
+                        await fetchDbInfo();
+                      } catch (error) {
+                        console.error('데이터베이스 초기화 오류:', error);
+                        // 타입 체크 추가
+                        const errorMessage = error instanceof Error 
+                          ? error.message 
+                          : '알 수 없는 오류가 발생했습니다';
+                        alert('데이터베이스 초기화 오류: ' + errorMessage);
+                      } finally {
+                        setIsLoading(false);
+                      }
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Database className="h-4 w-4" />
+                    DB 초기화
+                  </Button>
                 </div>
                 
                 {dbInfo && (

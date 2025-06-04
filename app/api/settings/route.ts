@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { getAuthSession } from '@/lib/auth'
 import { SettingsService } from '@/services/settings-service'
-import { initializeDatabase } from '@/app/actions'
+import { initializeDatabase } from '@/app/db-actions'
 
 // 오류 처리를 개선한 API 라우트 핸들러
 export async function GET() {
@@ -30,6 +30,7 @@ export async function GET() {
       })
     } catch (dbError) {
       console.error('데이터베이스 오류:', dbError)
+      console.log('로그인 문제가 지속되면 데이터베이스 초기화를 시도해 주세요: npm run force-reset-db');
       
       // 데이터베이스 오류 발생 시 초기화 시도
       await initializeDatabase()
@@ -82,6 +83,7 @@ export async function POST(request: Request) {
       console.log('POST /api/settings: 설정 저장 성공:', savedSettings);
     } catch (dbError) {
       console.error('POST /api/settings: 데이터베이스 저장 오류:', dbError);
+      console.log('로그인 문제가 지속되면 데이터베이스 초기화를 시도해 주세요: npm run force-reset-db');
       
       // 데이터베이스 오류 발생 시 초기화 시도
       console.log('POST /api/settings: 데이터베이스 초기화 시도');
@@ -94,6 +96,7 @@ export async function POST(request: Request) {
         console.log('POST /api/settings: 재시도 성공:', retryResult);
       } catch (retryError) {
         console.error('POST /api/settings: 설정 저장 재시도 실패:', retryError);
+        console.log('로그인 문제가 지속되면 데이터베이스 초기화를 시도해 주세요: npm run force-reset-db');
         return NextResponse.json(
           { success: false, message: '설정 저장에 실패했습니다. 다시 시도해 주세요.' },
           { status: 500 }

@@ -14,6 +14,9 @@ export function LoginForm() {
     setIsLoading(true)
     setError(null)
     
+    // 로그에만 데이터베이스 초기화 안내 출력
+    console.log('로그인 문제가 지속되면 데이터베이스 초기화를 시도해 주세요: npm run force-reset-db');
+    
     try {
       await signIn('google', { callbackUrl: '/settings' })
     } catch (error) {
@@ -78,13 +81,6 @@ export function LoginForm() {
           </>
         )}
       </Button>
-      
-      <div className="text-center text-xs text-gray-500 dark:text-gray-400 mt-4">
-        <p>로그인 문제가 지속되면 데이터베이스 초기화를 시도해 주세요:</p>
-        <code className="bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded mt-1 inline-block">
-          npm run force-reset-db
-        </code>
-      </div>
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { getAuthSession } from '@/lib/auth';
 import { diagnosticDb, directSaveSettings } from '@/lib/db-utils';
-import { initializeDatabase } from '@/app/actions';
+import { initializeDatabase } from '@/app/db-actions';
 
 // 데이터베이스 상태 확인 엔드포인트
 export async function GET() {
