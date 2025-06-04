@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Providers } from "@/providers/session-provider";
 import { ThemeProvider } from "@/providers/theme-provider";
+import { Toaster } from "@/components/ui/toaster";
 import { initializeDatabase } from "./db-actions";
 import "./globals.css";
 
@@ -34,6 +35,7 @@ export default function RootLayout({
         >
           <Providers>
             {children}
+            <Toaster />
           </Providers>
         </ThemeProvider>
       </body>

@@ -1,6 +1,7 @@
 'use client'
 
 import { SettingsForm } from '@/components/settings-form'
+import { AttendanceControl } from '@/components/attendance-control'
 import { Header } from '@/components/header'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
@@ -33,7 +34,10 @@ export default function SettingsPage() {
               <Skeleton className="h-[400px] w-full rounded-lg" />
             </div>
           ) : session ? (
-            <SettingsForm />
+            <div className="space-y-6">
+              <AttendanceControl />
+              <SettingsForm />
+            </div>
           ) : null}
         </div>
       </div>
