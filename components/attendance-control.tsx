@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { RefreshCw, LogIn, LogOut, Calendar, Clock } from 'lucide-react'
@@ -53,7 +53,7 @@ export function AttendanceControl() {
   }
 
   // 컴포넌트 초기화 시 스케줄러 상태 조회
-  React.useEffect(() => {
+  useEffect(() => {
     fetchSchedulerStatus()
   }, [])
 
@@ -173,7 +173,7 @@ export function AttendanceControl() {
       <CardFooter className="flex justify-between">
         <div className="flex gap-2">
           <Button
-            variant="outline"
+            variant="secondary"
             size="sm"
             onClick={() => fetchSchedulerStatus()}
             disabled={isLoading}
