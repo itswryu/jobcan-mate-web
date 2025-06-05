@@ -14,22 +14,52 @@ export async function POST(request: NextRequest) {
   try {
     // 1. 사용자 인증 확인
     const session = await getServerSession(authOptions);
-
+    
     if (!session || !session.user || !session.user.id) {
-      return NextResponse.json(
-        { success: false, message: '인증되지 않은 요청입니다.' },
-        { status: 401 }
-      );
+    return NextResponse.json(
+    { success: false, message: '인증되지 않은 요청입니다.' },
+    { status: 401 }
+    );
     }
-
+    
     // 2. 요청 데이터 파싱
     const { action } = await request.json();
-
+    
     if (!action || !['checkIn', 'checkOut', 'auto'].includes(action)) {
-      return NextResponse.json(
-        { success: false, message: '유효하지 않은 작업 유형입니다. "checkIn", "checkOut" 또는 "auto"를 사용하세요.' },
-        { status: 400 }
-      );
+    return NextResponse.json(
+    { success: false, message: '유효하지 않은 작업 유형입니다. "checkIn", "checkOut" 또는 "auto"를 사용하세요.' },
+    { status: 400 }
+    );
+    }
+
+    // 3. 현재 출근 상태 확인
+    const statusResponse = await fetch(`${request.nextUrl.origin}/api/jobcan/status`, {
+      method: 'GET',
+      headers: {
+        Cookie: request.headers.get('cookie') || '',
+      },
+    });
+
+    if (statusResponse.ok) {
+      const statusData = await statusResponse.json();
+      if (statusData.success) {
+        const currentStatus = statusData.status;
+
+        // 현재 상태에 따라 작업 가능 여부 확인
+        if (action === 'checkIn' && currentStatus === '근무중') {
+          return NextResponse.json({
+            success: false, 
+            message: '이미 출근 상태입니다.'
+          });
+        }
+
+        if (action === 'checkOut' && (currentStatus === '미출근' || currentStatus === '휴식중')) {
+          return NextResponse.json({
+            success: false, 
+            message: currentStatus === '미출근' ? '출근 상태가 아닙니다.' : '이미 퇴근 상태입니다.'
+          });
+        }
+      }
     }
 
     logInfo(`사용자 ${session.user.id}가 ${action} 작업을 요청했습니다.`);

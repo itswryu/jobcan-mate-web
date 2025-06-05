@@ -18,7 +18,8 @@ export function LoginForm() {
     console.log('로그인 문제가 지속되면 데이터베이스 초기화를 시도해 주세요: npm run force-reset-db');
     
     try {
-      await signIn('google', { callbackUrl: '/settings' })
+      // 대시보드로 리다이렉션
+      await signIn('google', { callbackUrl: '/' })
     } catch (error) {
       console.error('Login failed:', error)
       setError('로그인 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.')

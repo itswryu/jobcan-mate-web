@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { RefreshCw, LogIn, LogOut, Calendar, Clock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { useToast } from '@/hooks/use-toast'
+import { toast, useToast } from '@/hooks/use-toast'
 
 /**
  * 출퇴근 컨트롤 패널 컴포넌트
@@ -13,6 +13,7 @@ import { useToast } from '@/hooks/use-toast'
  */
 export function AttendanceControl() {
   const [isLoading, setIsLoading] = useState(false)
+  const [actionType, setActionType] = useState<string | null>(null)
   const [schedulerStatus, setSchedulerStatus] = useState<any>(null)
   const [workStatus, setWorkStatus] = useState<string | null>(null)
   const [statusLoading, setStatusLoading] = useState(false)
@@ -96,6 +97,7 @@ export function AttendanceControl() {
   // 출근/퇴근 작업 실행
   const executeAction = async (action: 'checkIn' | 'checkOut' | 'auto') => {
     setIsLoading(true)
+    setActionType(action)
     try {
       const response = await fetch('/api/jobcan', {
         method: 'POST',
@@ -130,6 +132,7 @@ export function AttendanceControl() {
       })
     } finally {
       setIsLoading(false)
+      setActionType(null)
       // 작업 완료 후 상태 갱신
       fetchSchedulerStatus()
       checkWorkStatus()
@@ -217,8 +220,13 @@ export function AttendanceControl() {
                     </Badge>
                   </div>
                   {schedulerStatus.testMode && (
-                    <div className="mt-2 rounded-md bg-red-100 p-3 text-sm font-medium text-red-800 dark:bg-red-900/50 dark:text-red-300 border border-red-200 dark:border-red-800">
-                      테스트 모드가 활성화되어 있습니다. 출퇴근 버튼은 실제로 Jobcan에 기록되지 않습니다.
+                    <div className="mt-4 rounded-md bg-red-50 p-4 text-sm font-semibold text-red-800 dark:bg-red-900/60 dark:text-red-200 border-2 border-red-300 dark:border-red-800 flex items-center gap-2 shadow-sm">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 text-red-600 dark:text-red-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                      <span>
+                        테스트 모드가 활성화되어 있습니다. 출퇴근 버튼은 실제로 Jobcan에 기록되지 않습니다.
+                      </span>
                     </div>
                   )}
                 </>
@@ -244,23 +252,182 @@ export function AttendanceControl() {
           </Button>
         </div>
         <div className="flex gap-2">
+          {/* 출근 버튼: 미출근 상태일 때만 활성화 */}
           <Button
-            variant="default"
+            variant={workStatus === '미출근' ? "default" : "outline"}
             size="sm"
-            onClick={() => executeAction('checkIn')}
+            onClick={() => {
+              if (workStatus === '근무중') {
+                toast({
+                  title: '이미 출근 상태입니다',
+                  description: '현재 근무중 상태이므로 출근을 다시 기록할 필요가 없습니다.',
+                });
+                return;
+              }
+              executeAction('checkIn');
+            }}
             disabled={isLoading}
+            className={`${actionType === 'checkIn' ? 'animate-pulse' : ''} ${
+              workStatus === '근무중' 
+                ? 'hover:bg-gray-200 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300 bg-gray-100 text-gray-500 dark:bg-gray-900 dark:text-gray-400 border-gray-300 dark:border-gray-700 opacity-90 dark:opacity-80' 
+                : ''
+            }`}
+            title={workStatus === '근무중' ? '이미 출근 상태입니다' : ''}
           >
-            <LogIn className="mr-2 h-4 w-4" />
-            출근하기
+            {actionType === 'checkIn' ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                처리중...
+              </>
+            ) : (
+              <>
+                <LogIn className="mr-2 h-4 w-4" />
+                출근하기
+              </>
+            )}
           </Button>
+          {/* 퇴근 버튼: 근무중 상태일 때만 활성화 */}
           <Button
-            variant="secondary"
+            variant={workStatus === '근무중' ? "secondary" : "outline"}
             size="sm"
-            onClick={() => executeAction('checkOut')}
+            onClick={() => {
+              // 상태 검사
+              if (workStatus === '미출근') {
+                toast({
+                  title: '출근 상태가 아닙니다',
+                  description: '현재 출근하지 않은 상태이므로 퇴근을 기록할 수 없습니다.',
+                });
+                return;
+              }
+              if (workStatus === '휴식중') {
+                toast({
+                  title: '이미 퇴근 상태입니다',
+                  description: '현재 휴식중 상태이므로 퇴근을 다시 기록할 필요가 없습니다.',
+                });
+                return;
+              }
+              
+              // 퇴근 시간 전인지 확인
+              if (schedulerStatus && workStatus === '근무중') {
+                console.log('checkOutTime check - schedulerStatus:', JSON.stringify(schedulerStatus));
+                
+                const now = new Date();
+                const currentHour = now.getHours();
+                const currentMinute = now.getMinutes();
+                const currentTimeInMinutes = currentHour * 60 + currentMinute;
+                console.log('Current time:', `${currentHour}:${currentMinute}`, '(', currentTimeInMinutes, 'minutes )');
+                
+                try {
+                  // 퇴근 시간 추출
+                  // API 응답에서 퇴근 시간이 어떤 형식으로 오는지 확인
+                  let checkOutHour = 18; // 기본값
+                  let checkOutMinute = 0; // 기본값
+
+                  // 시간 문자열 처리 (다양한 형식 처리)
+                  const checkOutTimeStr = schedulerStatus.checkOutTime;
+                  console.log('Raw checkOutTime value:', checkOutTimeStr);
+                  
+                  if (typeof checkOutTimeStr === 'string') {
+                    // ISO 형식 (2023-01-01T18:00:00.000Z)
+                    if (checkOutTimeStr.includes('T')) {
+                      const date = new Date(checkOutTimeStr);
+                      checkOutHour = date.getHours();
+                      checkOutMinute = date.getMinutes();
+                    } 
+                    // HH:MM 형식 (18:00)
+                    else if (checkOutTimeStr.includes(':')) {
+                      const parts = checkOutTimeStr.split(':');
+                      checkOutHour = parseInt(parts[0], 10);
+                      checkOutMinute = parseInt(parts[1], 10);
+                    }
+                  }
+                  
+                  // 지연 시간 처리
+                  const delay = schedulerStatus.checkOutDelay || 0;
+                  console.log('Checkout delay:', delay, 'minutes');
+                  
+                  const checkOutTimeInMinutes = checkOutHour * 60 + checkOutMinute + delay;
+                  console.log('Calculated checkout time:', `${Math.floor(checkOutTimeInMinutes/60)}:${checkOutTimeInMinutes%60}`, '(', checkOutTimeInMinutes, 'minutes )');
+                  console.log('Time difference:', checkOutTimeInMinutes - currentTimeInMinutes, 'minutes');
+                  
+                  // 현재 시간이 퇴근 시간보다 일찍 이면 경고 (30분 이상 차이)
+                  if (currentTimeInMinutes < checkOutTimeInMinutes - 30) {
+                    const timeLeft = checkOutTimeInMinutes - currentTimeInMinutes;
+                    const hoursLeft = Math.floor(timeLeft / 60);
+                    const minutesLeft = timeLeft % 60;
+                    const timeLeftText = hoursLeft > 0 
+                      ? `${hoursLeft}시간 ${minutesLeft > 0 ? `${minutesLeft}분` : ''}` 
+                      : `${minutesLeft}분`;
+                    
+                    console.log('Showing early checkout warning. Time left:', timeLeftText);
+                    
+                    // 경고 메시지 표시
+                    const earlyCheckoutToast = toast({
+                      title: '예정된 퇴근 시간보다 일찍 퇴근합니다',
+                      description: `예정된 퇴근 시간까지 아직 ${timeLeftText} 남았습니다. 정말 지금 퇴근하시겠습니까?`,
+                      action: (
+                        <div className="flex gap-2 mt-2">
+                          <Button 
+                            variant="outline" 
+                            onClick={() => {
+                              // 토스트 닫기
+                              earlyCheckoutToast.dismiss();
+                            }}
+                            size="sm"
+                            className="flex-1 text-gray-700 dark:text-gray-200 border-gray-300 dark:border-gray-600"
+                          >
+                            취소하기
+                          </Button>
+                          <Button 
+                            variant="destructive" 
+                            onClick={() => {
+                              // 토스트 닫고 퇴근 처리
+                              earlyCheckoutToast.dismiss();
+                              executeAction('checkOut');
+                            }}
+                            size="sm"
+                            className="flex-1"
+                          >
+                            퇴근 진행
+                          </Button>
+                        </div>
+                      ),
+                      className: "flex flex-col gap-4",  // 팝업 내용 간격 조정
+                    });
+                    return;
+                  } else {
+                    console.log('No warning needed. Within 30 minutes of checkout time or after checkout time.');
+                  }
+                } catch (error) {
+                  console.error('Error during checkout time check:', error);
+                  // 오류 발생 시 그냥 진행
+                  executeAction('checkOut');
+                  return;
+                }
+              }
+              
+              // 정상 진행
+              executeAction('checkOut');
+            }}
             disabled={isLoading}
+            className={`${actionType === 'checkOut' ? 'animate-pulse' : ''} ${
+              workStatus === '미출근' || workStatus === '휴식중' 
+                ? 'hover:bg-gray-200 hover:text-gray-700 dark:hover:bg-gray-800 dark:hover:text-gray-300 bg-gray-100 text-gray-500 dark:bg-gray-900 dark:text-gray-400 border-gray-300 dark:border-gray-700 opacity-90 dark:opacity-80' 
+                : ''
+            }`}
+            title={workStatus === '미출근' ? '출근 상태가 아닙니다' : workStatus === '휴식중' ? '이미 퇴근 상태입니다' : ''}
           >
-            <LogOut className="mr-2 h-4 w-4" />
-            퇴근하기
+            {actionType === 'checkOut' ? (
+              <>
+                <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                처리중...
+              </>
+            ) : (
+              <>
+                <LogOut className="mr-2 h-4 w-4" />
+                퇴근하기
+              </>
+            )}
           </Button>
         </div>
       </CardFooter>

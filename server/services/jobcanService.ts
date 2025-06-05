@@ -87,10 +87,10 @@ export class JobcanService {
         );
       }
 
-      logInfo(`Waiting for navigation to attendance page: ${this.config.attendanceUrl} or for 2 minutes...`);
+      logInfo(`Waiting for navigation to attendance page: ${this.config.attendanceUrl} or for 30 seconds...`);
 
       try {
-        await page.waitForURL(url => url.toString().startsWith(this.config.attendanceUrl), { timeout: 120000 });
+        await page.waitForURL(url => url.toString().startsWith(this.config.attendanceUrl), { timeout: 30000 });
         logInfo('Successfully navigated to the attendance page.');
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
