@@ -14,6 +14,8 @@ import { useToast } from '@/hooks/use-toast'
 export function AttendanceControl() {
   const [isLoading, setIsLoading] = useState(false)
   const [schedulerStatus, setSchedulerStatus] = useState<any>(null)
+  const [workStatus, setWorkStatus] = useState<string | null>(null)
+  const [statusLoading, setStatusLoading] = useState(false)
   const { toast } = useToast()
 
   // 스케줄러 상태 조회
@@ -52,9 +54,43 @@ export function AttendanceControl() {
     }
   }
 
-  // 컴포넌트 초기화 시 스케줄러 상태 조회
+  // 출근 상태 확인
+  const checkWorkStatus = async () => {
+    setStatusLoading(true)
+    try {
+      const response = await fetch('/api/jobcan/status', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        throw new Error('출근 상태 확인에 실패했습니다.')
+      }
+
+      const data = await response.json()
+      if (data.success) {
+        setWorkStatus(data.status)
+      } else {
+        toast({
+          title: '출근 상태 확인 실패',
+          description: data.message,
+          variant: 'destructive',
+        })
+      }
+    } catch (error) {
+      setWorkStatus('확인 불가')
+      console.error('출근 상태 확인 오류:', error)
+    } finally {
+      setStatusLoading(false)
+    }
+  }
+
+  // 컴포넌트 초기화 시 스케줄러 상태와 출근 상태 조회
   useEffect(() => {
     fetchSchedulerStatus()
+    checkWorkStatus()
   }, [])
 
   // 출근/퇴근 작업 실행
@@ -96,6 +132,7 @@ export function AttendanceControl() {
       setIsLoading(false)
       // 작업 완료 후 상태 갱신
       fetchSchedulerStatus()
+      checkWorkStatus()
     }
   }
 
@@ -112,18 +149,42 @@ export function AttendanceControl() {
   }
 
   return (
-    <Card>
+    <Card className="w-full">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Clock className="h-5 w-5" />
-          출퇴근 관리
+          출퇴근 상태
         </CardTitle>
-        <CardDescription>수동으로 출근 또는 퇴근을 기록하거나 예약된 작업 정보를 확인합니다.</CardDescription>
+        <CardDescription>자동 출퇴근 상태를 확인하고 수동으로 출퇴근을 기록할 수 있습니다.</CardDescription>
       </CardHeader>
-      <CardContent>
+      <CardContent className="pt-2 pb-4">
         <div className="grid gap-4">
           {schedulerStatus ? (
             <div className="grid gap-2">
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium">현재 근무 상태</span>
+                {statusLoading ? (
+                  <Badge variant="outline" className="animate-pulse">
+                    확인 중...
+                  </Badge>
+                ) : workStatus === '근무중' ? (
+                  <Badge variant="default" className="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                    근무중
+                  </Badge>
+                ) : workStatus === '휴식중' ? (
+                  <Badge variant="default" className="bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300">
+                    휴식중
+                  </Badge>
+                ) : workStatus === '미출근' ? (
+                  <Badge variant="outline" className="bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300">
+                    미출근
+                  </Badge>
+                ) : (
+                  <Badge variant="outline">
+                    {workStatus || '알 수 없음'}
+                  </Badge>
+                )}
+              </div>
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">스케줄러 상태</span>
                 <Badge variant={schedulerStatus.schedulerEnabled ? 'default' : 'outline'}>
@@ -156,7 +217,7 @@ export function AttendanceControl() {
                     </Badge>
                   </div>
                   {schedulerStatus.testMode && (
-                    <div className="mt-2 rounded-md bg-yellow-50 p-2 text-sm text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400">
+                    <div className="mt-2 rounded-md bg-red-100 p-3 text-sm font-medium text-red-800 dark:bg-red-900/50 dark:text-red-300 border border-red-200 dark:border-red-800">
                       테스트 모드가 활성화되어 있습니다. 출퇴근 버튼은 실제로 Jobcan에 기록되지 않습니다.
                     </div>
                   )}

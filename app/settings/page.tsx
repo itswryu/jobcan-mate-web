@@ -24,8 +24,8 @@ export default function SettingsPage() {
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 mb-2">서비스 설정</h1>
-            <p className="text-zinc-600 dark:text-zinc-400">Jobcan 자동 출퇴근 설정을 관리하세요</p>
+            <h1 className="text-3xl font-bold text-zinc-900 dark:text-zinc-50 mb-2">Jobcan 설정</h1>
+            <p className="text-zinc-600 dark:text-zinc-400">Jobcan 계정 및 자동화 설정을 관리하세요</p>
           </div>
           
           {status === 'loading' ? (
@@ -35,7 +35,6 @@ export default function SettingsPage() {
             </div>
           ) : session ? (
             <div className="space-y-6">
-              <AttendanceControl />
               <SettingsForm />
             </div>
           ) : null}
